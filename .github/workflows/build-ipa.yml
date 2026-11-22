@@ -23,7 +23,7 @@ concurrency:
 jobs:
   build:
     name: Rebuild app with memory fix
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 90
 
     steps:
@@ -32,9 +32,20 @@ jobs:
 
       - name: Xcode / iPhoneOS SDK
         run: |
-          sudo xcode-select -s /Applications/Xcode.app
+          echo "Installed Xcode:"
+          ls -d /Applications/Xcode*.app 2>/dev/null || true
+          # StikJIT.xcframework in this repo was built with Swift 6.4
+          # (Xcode 26). An older compiler cannot read its .swiftinterface.
+          XCODE=""
+          for c in /Applications/Xcode_26*.app /Applications/Xcode.app; do
+            if [ -d "$c" ]; then XCODE="$c"; break; fi
+          done
+          [ -n "$XCODE" ] || { echo "No Xcode 26 found on this runner" >&2; exit 1; }
+          echo "Selecting $XCODE"
+          sudo xcode-select -s "$XCODE"
           sudo xcodebuild -license accept || true
           xcodebuild -version
+          swift --version
           xcrun --sdk iphoneos --show-sdk-version
 
       - name: Tools
