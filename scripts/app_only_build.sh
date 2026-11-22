@@ -94,6 +94,14 @@ if [ -d "$APP/android-system" ]; then
     rsync -a "$APP/android-system/" "$HUSK_ROOT/build/android-system/"
 fi
 
+# StikJIT's generated .swiftinterface uses the Swift 6.4 `Module::Type`
+# spelling. Some CI Xcode versions cannot parse it and die with
+# "expected '{' in struct" at the protocol conformance. Normalize to `Module.Type`.
+MODULES="$HUSK_ROOT/src/app/Frameworks/StikJIT.xcframework/ios-arm64/StikJIT.framework/Modules/StikJIT.swiftmodule"
+for f in "$MODULES"/*.swiftinterface; do
+    [ -f "$f" ] && sed -i '' -E 's/([A-Za-z_][A-Za-z0-9_]*)::/\1./g' "$f"
+done
+
 echo "==> building app + IPA"
 mkdir -p "$(dirname "$OUT")"
 "$HUSK_ROOT/scripts/package_ipa.sh" "$OUT"
