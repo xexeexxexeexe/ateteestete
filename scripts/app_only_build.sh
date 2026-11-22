@@ -94,6 +94,15 @@ if [ -d "$APP/android-system" ]; then
     rsync -a "$APP/android-system/" "$HUSK_ROOT/build/android-system/"
 fi
 
+# libhusk_rppairing.a is a static lib linked INTO the app executable, so it
+# cannot be recovered from an IPA. Build it from the vendored Rust source.
+if [ ! -f "$LIB/libhusk_rppairing.a" ]; then
+    echo "==> building libhusk_rppairing.a"
+    command -v rustup >/dev/null || { echo "rustup is required for libhusk_rppairing" >&2; exit 1; }
+    rustup target add aarch64-apple-ios
+    "$HUSK_ROOT/scripts/build_rppairing_ios.sh"
+fi
+
 echo "==> building app + IPA"
 mkdir -p "$(dirname "$OUT")"
 "$HUSK_ROOT/scripts/package_ipa.sh" "$OUT"
