@@ -25,8 +25,6 @@ jobs:
     name: Rebuild app with memory fix
     runs-on: macos-15
     timeout-minutes: 90
-    env:
-      DD: ${{ runner.temp }}/husk_ipa
 
     steps:
       - name: Checkout
@@ -60,6 +58,10 @@ jobs:
           ls -lh "$RUNNER_TEMP/Husk-base.ipa"
 
       - name: Rebuild app only
+        env:
+          # package_ipa.sh stages and zips next to DD. Step level is required:
+          # the runner context is not available in job-level env.
+          DD: ${{ runner.temp }}/husk_ipa
         run: |
           chmod +x scripts/*.sh
           ./scripts/app_only_build.sh "$RUNNER_TEMP/Husk-base.ipa" "$GITHUB_WORKSPACE/build/Husk.ipa"
