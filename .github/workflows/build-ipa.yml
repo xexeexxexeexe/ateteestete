@@ -1,0 +1,84 @@
+name: Build IPA (app only)
+
+# The binaries that take hours to cross-compile (QEMU, ANGLE, MoltenVK) are
+# reused from a released Husk.ipa. Only the Swift app is rebuilt, so the job
+# takes minutes. macos-14+ is required: Homebrew lives in /opt/homebrew there.
+on:
+  workflow_dispatch:
+    inputs:
+      base_ipa_url:
+        description: 'Optional: URL of the Husk.ipa to take prebuilt binaries from'
+        required: false
+        type: string
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-ipa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Rebuild app with memory fix
+    runs-on: macos-15
+    timeout-minutes: 90
+    env:
+      DD: ${{ runner.temp }}/husk_ipa
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Xcode / iPhoneOS SDK
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app
+          sudo xcodebuild -license accept || true
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+
+      - name: Tools
+        run: |
+          brew install xcodegen qemu jq
+          qemu-img --version
+
+      - name: Fetch base IPA
+        id: base
+        env:
+          BASE_IPA_URL: ${{ inputs.base_ipa_url }}
+        run: |
+          URL="$BASE_IPA_URL"
+          if [ -z "$URL" ]; then
+            URL=$(curl -fsSL https://api.github.com/repos/Leviidev/Husk/releases/latest \
+              | jq -r '.assets[] | select(.name == "Husk.ipa") | .browser_download_url' | head -1)
+          fi
+          [ -n "$URL" ] || { echo "no Husk.ipa found in the latest release" >&2; exit 1; }
+          echo "base IPA: $URL"
+          curl -fL --retry 3 "$URL" -o "$RUNNER_TEMP/Husk-base.ipa"
+          ls -lh "$RUNNER_TEMP/Husk-base.ipa"
+
+      - name: Rebuild app only
+        run: |
+          chmod +x scripts/*.sh
+          ./scripts/app_only_build.sh "$RUNNER_TEMP/Husk-base.ipa" "$GITHUB_WORKSPACE/build/Husk.ipa"
+
+      - name: Upload IPA + TIPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Husk-${{ github.sha }}
+          path: |
+            build/Husk.ipa
+            build/Husk.tipa
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Attach to GitHub release (tags only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/Husk.ipa
+            build/Husk.tipa
+          generate_release_notes: true
