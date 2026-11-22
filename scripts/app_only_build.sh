@@ -94,21 +94,6 @@ if [ -d "$APP/android-system" ]; then
     rsync -a "$APP/android-system/" "$HUSK_ROOT/build/android-system/"
 fi
 
-# StikJIT's .swiftinterface was emitted by Swift 6.4 using module-qualified
-# names (`Swift::String`, `StikJIT::DDIPaths`). CI only has Swift 6.2/6.3,
-# which cannot parse that: "expected '{' in struct" and "DDIPaths is not a
-# member type of enum StikJIT.StikJIT". Downgrade it to the classic spelling:
-# drop module qualifiers and lower the declared compiler version.
-MODULES="$HUSK_ROOT/src/app/Frameworks/StikJIT.xcframework/ios-arm64/StikJIT.framework/Modules/StikJIT.swiftmodule"
-for f in "$MODULES"/*.swiftinterface; do
-    [ -f "$f" ] || continue
-    sed -i '' -E \
-      -e 's#^// swift-compiler-version:.*#// swift-compiler-version: Apple Swift version 6.2.4 effective-5.10 (swiftlang-6.2.4.1.4 clang-1700.6.4.2)#' \
-      -e 's/-interface-compiler-version 6\.4/-interface-compiler-version 6.2/' \
-      -e 's/[A-Za-z_][A-Za-z0-9_]*::/ /g' \
-      "$f"
-done
-
 echo "==> building app + IPA"
 mkdir -p "$(dirname "$OUT")"
 "$HUSK_ROOT/scripts/package_ipa.sh" "$OUT"
