@@ -31,51 +31,52 @@ struct StoreView: View {
             .navigationBarTitleDisplayMode(.large)
             .searchable(text: $searchText, prompt: "Search Google Play")
             .toolbar {
-                ToolbarItemGroup(placement: .topBarTrailing) {
-                    // ToolbarContentBuilder.buildIf is iOS 16+; deployment target is 15.5.
-                    if #available(iOS 16.0, *) {
-                        if !manager.downloadProgress.isEmpty {
-                            Button { Router.shared.showDownloads = true } label: {
-                                Label("\(manager.downloadProgress.count) Downloading", systemImage: "arrow.down.circle")
-                                    .labelStyle(.titleAndIcon)
-                                    .font(.subheadline.weight(.semibold))
-                            }
+                // ToolbarContentBuilder.buildIf is iOS 16+, but ViewBuilder's
+                // is not. Keep each conditional INSIDE its ToolbarItem.
+                ToolbarItem(placement: .topBarTrailing) {
+                    if !manager.downloadProgress.isEmpty {
+                        Button { Router.shared.showDownloads = true } label: {
+                            Label("\(manager.downloadProgress.count) Downloading", systemImage: "arrow.down.circle")
+                                .labelStyle(.titleAndIcon)
+                                .font(.subheadline.weight(.semibold))
                         }
-                        if manager.isSignedIn {
-                            Menu {
-                                if let s = manager.session {
-                                    Text(s.isAnonymous ? "Guest Account (Aurora)" : s.email)
-                                        .font(.caption)
-                                    if s.isAnonymous {
-                                        Text(s.email).font(.caption2).foregroundStyle(.secondary)
-                                    }
-                                    Divider()
+                    }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    if manager.isSignedIn {
+                        Menu {
+                            if let s = manager.session {
+                                Text(s.isAnonymous ? "Guest Account (Aurora)" : s.email)
+                                    .font(.caption)
+                                if s.isAnonymous {
+                                    Text(s.email).font(.caption2).foregroundStyle(.secondary)
                                 }
-                                Button(role: .destructive) {
-                                    manager.signOut()
-                                } label: {
-                                    Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
-                                }
-                            } label: {
-                                Image(systemName: manager.session?.isAnonymous == true ? "person.badge.shield.checkmark" : "person.crop.circle")
-                                    .font(.system(size: 18))
+                                Divider()
                             }
-                        } else {
-                            Menu {
-                                Button {
-                                    Task { await manager.signInAsGuest() }
-                                } label: {
-                                    Label("Use Guest Account (Aurora)", systemImage: "person.crop.circle.badge.checkmark")
-                                }
-                                Button {
-                                    showSignIn = true
-                                } label: {
-                                    Label("Sign In with Google", systemImage: "person.badge.key")
-                                }
+                            Button(role: .destructive) {
+                                manager.signOut()
                             } label: {
-                                Text("Sign In")
-                                    .font(.subheadline.weight(.semibold))
+                                Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
                             }
+                        } label: {
+                            Image(systemName: manager.session?.isAnonymous == true ? "person.badge.shield.checkmark" : "person.crop.circle")
+                                .font(.system(size: 18))
+                        }
+                    } else {
+                        Menu {
+                            Button {
+                                Task { await manager.signInAsGuest() }
+                            } label: {
+                                Label("Use Guest Account (Aurora)", systemImage: "person.crop.circle.badge.checkmark")
+                            }
+                            Button {
+                                showSignIn = true
+                            } label: {
+                                Label("Sign In with Google", systemImage: "person.badge.key")
+                            }
+                        } label: {
+                            Text("Sign In")
+                                .font(.subheadline.weight(.semibold))
                         }
                     }
                 }

@@ -19,23 +19,21 @@ struct ProfileView: View {
             .background(Console.page.ignoresSafeArea())
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } }
-                // ToolbarContentBuilder.buildIf is iOS 16+; the app still
-                // deploys to 15.5, so guard the conditional explicitly.
-                if #available(iOS 16.0, *) {
+                // ToolbarContentBuilder.buildIf is iOS 16+, but ViewBuilder's
+                // is not. Keep the conditional INSIDE the ToolbarItem.
+                ToolbarItem(placement: .primaryAction) {
                     if account.signedIn {
-                        ToolbarItem(placement: .primaryAction) {
-                            Menu {
-                                Button { editing = true } label: { Label("Edit Profile", systemImage: "pencil") }
-                                if let u = account.user {
-                                    HuskShareLink(item: CompatibilityStore.site.appendingPathComponent("u").appendingPathComponent(u.username)) {
-                                        Label("Share Profile", systemImage: "square.and.arrow.up")
-                                    }
+                        Menu {
+                            Button { editing = true } label: { Label("Edit Profile", systemImage: "pencil") }
+                            if let u = account.user {
+                                HuskShareLink(item: CompatibilityStore.site.appendingPathComponent("u").appendingPathComponent(u.username)) {
+                                    Label("Share Profile", systemImage: "square.and.arrow.up")
                                 }
-                                Button(role: .destructive) { Task { await account.signOut() } } label: {
-                                    Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
-                                }
-                            } label: { Image(systemName: "ellipsis.circle") }
-                        }
+                            }
+                            Button(role: .destructive) { Task { await account.signOut() } } label: {
+                                Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
+                            }
+                        } label: { Image(systemName: "ellipsis.circle") }
                     }
                 }
             }
