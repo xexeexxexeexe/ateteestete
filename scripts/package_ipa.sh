@@ -65,7 +65,7 @@ echo "==> building"
 xcodebuild -project "$HUSK_ROOT/src/app/Husk.xcodeproj" -scheme Husk \
     -sdk iphoneos -configuration Release -derivedDataPath "$DD" \
     CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
-    build 2>&1 | tee "$DD/build.log" | grep -E "error:|BUILD (SUCCEEDED|FAILED)" || true
+    build 2>&1 | tee "$DD/build.log" | grep -E "error:|ld: |Undefined symbols|BUILD (SUCCEEDED|FAILED)" || true
 
 # A failed build used to sail straight past this: the previous .app is still in
 # DerivedData, so validation and packaging both succeed and produce an IPA of
@@ -73,7 +73,9 @@ xcodebuild -project "$HUSK_ROOT/src/app/Husk.xcodeproj" -scheme Husk \
 # it looks exactly like a fix that did not work.
 if ! grep -q "BUILD SUCCEEDED" "$DD/build.log"; then
     echo "build failed; refusing to package a stale app" >&2
-    grep -E "error:" "$DD/build.log" | head -10 >&2
+    grep -E "error:|ld: |Undefined symbols" "$DD/build.log" | head -30 >&2
+    echo "--- tail of $DD/build.log ---" >&2
+    tail -60 "$DD/build.log" >&2
     exit 1
 fi
 
