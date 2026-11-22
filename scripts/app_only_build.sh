@@ -63,10 +63,11 @@ elif [ -d "$APP/Frameworks/MoltenVK.framework" ]; then
 <plist version="1.0"><dict>
   <key>CFBundlePackageType</key><string>XFWK</string>
   <key>XCFrameworkFormatVersion</key><string>1.0</string>
-  <key>Libraries</key><array><dict>
+  <key>AvailableLibraries</key><array><dict>
     <key>LibraryIdentifier</key><string>ios-arm64</string>
     <key>LibraryPath</key><string>MoltenVK.framework</string>
     <key>SupportedPlatform</key><string>ios</string>
+    <key>SupportedArchitectures</key><array><string>arm64</string></array>
   </dict></array>
 </dict></plist>
 PLIST
